@@ -3,3 +3,4 @@ cmake-build-remotehost-debug
 .clion.source.upload.marker
 
 /.idea/
+/ffmpeg-example/test-output/

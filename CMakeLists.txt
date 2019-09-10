@@ -1775,3 +1775,5 @@ target_link_libraries(ffmpeg
     -llzma
     -lxcb-shm
 )
+
+add_subdirectory(ffmpeg-example)
