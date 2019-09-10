@@ -1,0 +1,5 @@
+cmake-build-debug
+cmake-build-remotehost-debug
+.clion.source.upload.marker
+
+/.idea/
