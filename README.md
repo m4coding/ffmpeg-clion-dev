@@ -8,6 +8,9 @@
     # 开始构建，并后台运行容器
     docker-compose up -d
 
+    # 如果要停止容器，则可以
+    docker-compose down
+
 2、配置clion环境
 
     *设置setting -> Build,Execution,Deployment->Toolchains
