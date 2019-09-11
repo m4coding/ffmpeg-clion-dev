@@ -1,7 +1,3 @@
-//
-// Created by mochangsheng on 2019/7/9.
-//
-
 extern "C"
 {
 #include <libavformat\avformat.h>

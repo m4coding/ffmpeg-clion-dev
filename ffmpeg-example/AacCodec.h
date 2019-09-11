@@ -1,10 +1,3 @@
-/*
- * AacCodec.h
- *
- *  Created on: 2017年1月9日
- *      Author: zpy
- */
-
 #ifndef AACCODEC_H_
 #define AACCODEC_H_
 #ifdef __cplusplus

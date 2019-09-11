@@ -1,9 +1,3 @@
-/*
- * AacCoder.cpp
- *
- *  Created on: 2017年1月9日
- *      Author: zpy
- */
 #include <stdio.h>
 #include "AacCodec.h"
 #include "Log.h"

@@ -1,5 +1,4 @@
 //
-// Created by mochangsheng on 2019/6/18.
 // 输出ffmpeg相关信息
 //
 

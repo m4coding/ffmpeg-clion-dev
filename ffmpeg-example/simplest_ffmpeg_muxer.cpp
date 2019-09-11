@@ -1,24 +1,4 @@
-/**
- * ��򵥵Ļ���FFmpeg������Ƶ������
- * Simplest FFmpeg Muxer
- *
- * ������ Lei Xiaohua
- * leixiaohua1020@126.com
- * �й���ý��ѧ/���ֵ��Ӽ���
- * Communication University of China / Digital TV Technology
- * http://blog.csdn.net/leixiaohua1020
- *
- * ��������Խ���Ƶ��������Ƶ���������һ�ַ�װ��ʽ�С�
- * �����н�AAC�������Ƶ������H.264�������Ƶ���������
- * MPEG2TS��װ��ʽ���ļ���
- * ��Ҫע����Ǳ����򲢲��ı�����Ƶ�ı����ʽ��
- *
- * This software mux a video bitstream and a audio bitstream 
- * together into a file.
- * In this example, it mux a H.264 bitstream (in MPEG2TS) and 
- * a AAC bitstream file together into MP4 format file.
- *
- */
+
 
 #include <stdio.h>
 
