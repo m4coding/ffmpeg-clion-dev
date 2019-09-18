@@ -186,14 +186,15 @@ target_link_libraries(ScreenRecorder  ${LIB_AVCODEC}
         ${EXTERNAL_LIB})
 
 add_executable(RTMPMuxing RTMPMuxing.cpp)
-target_link_libraries(RTMPMuxing  ${LIB_AVCODEC}
+target_link_libraries(RTMPMuxing
+        ${LIB_POSTPROC}
+        ${LIB_AVFORMAT}
         ${LIB_AVDEVICE}
         ${LIB_AVFILTER}
-        ${LIB_AVFORMAT}
-        ${LIB_AVUTIL}
-        ${LIB_POSTPROC}
+        ${LIB_AVCODEC}
         ${LIB_SWRESAMPLE}
         ${LIB_SWSCALE}
+        ${LIB_AVUTIL}
         ${EXTERNAL_LIB})
 
 add_executable(FilteringVideo FilteringVideo.cpp)
