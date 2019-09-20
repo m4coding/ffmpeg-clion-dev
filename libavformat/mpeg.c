@@ -20,7 +20,6 @@
  */
 
 #include "avformat.h"
-#include "avio_internal.h"
 #include "internal.h"
 #include "mpeg.h"
 
@@ -129,7 +128,6 @@ typedef struct MpegDemuxContext {
     int sofdec;
     int dvd;
     int imkh_cctv;
-    int raw_ac3;
 #if CONFIG_VOBSUB_DEMUXER
     AVFormatContext *sub_ctx;
     FFDemuxSubtitlesQueue q[32];
@@ -444,24 +442,8 @@ redo:
     }
 
     if (startcode == PRIVATE_STREAM_1) {
-        int ret = ffio_ensure_seekback(s->pb, 2);
-
-        if (ret < 0)
-            return ret;
-
         startcode = avio_r8(s->pb);
-        m->raw_ac3 = 0;
-        if (startcode == 0x0b) {
-            if (avio_r8(s->pb) == 0x77) {
-                startcode = 0x80;
-                m->raw_ac3 = 1;
-                avio_skip(s->pb, -2);
-            } else {
-                avio_skip(s->pb, -1);
-            }
-        } else {
-            len--;
-        }
+        len--;
     }
     if (len < 0)
         goto error_redo;
@@ -504,16 +486,14 @@ redo:
         if (len < 4)
             goto skip;
 
-        if (!m->raw_ac3) {
-            /* audio: skip header */
+        /* audio: skip header */
+        avio_r8(s->pb);
+        lpcm_header_len = avio_rb16(s->pb);
+        len -= 3;
+        if (startcode >= 0xb0 && startcode <= 0xbf) {
+            /* MLP/TrueHD audio has a 4-byte header */
             avio_r8(s->pb);
-            lpcm_header_len = avio_rb16(s->pb);
-            len -= 3;
-            if (startcode >= 0xb0 && startcode <= 0xbf) {
-                /* MLP/TrueHD audio has a 4-byte header */
-                avio_r8(s->pb);
-                len--;
-            }
+            len--;
         }
     }
 
@@ -543,9 +523,6 @@ redo:
             type     = AVMEDIA_TYPE_VIDEO;
         } else if (es_type == STREAM_TYPE_VIDEO_H264) {
             codec_id = AV_CODEC_ID_H264;
-            type     = AVMEDIA_TYPE_VIDEO;
-        } else if (es_type == STREAM_TYPE_VIDEO_HEVC) {
-            codec_id = AV_CODEC_ID_HEVC;
             type     = AVMEDIA_TYPE_VIDEO;
         } else if (es_type == STREAM_TYPE_AUDIO_AC3) {
             codec_id = AV_CODEC_ID_AC3;
@@ -591,7 +568,7 @@ redo:
         codec_id = AV_CODEC_ID_DTS;
     } else if (startcode >= 0xa0 && startcode <= 0xaf) {
         type     = AVMEDIA_TYPE_AUDIO;
-        if (lpcm_header_len >= 6 && startcode == 0xa1) {
+        if (lpcm_header_len == 6 || startcode == 0xa1) {
             codec_id = AV_CODEC_ID_MLP;
         } else {
             codec_id = AV_CODEC_ID_PCM_DVD;
@@ -650,7 +627,7 @@ found:
     pkt->stream_index = st->index;
 
     if (s->debug & FF_FDEBUG_TS)
-        av_log(s, AV_LOG_DEBUG, "%d: pts=%0.3f dts=%0.3f size=%d\n",
+        av_log(s, AV_LOG_TRACE, "%d: pts=%0.3f dts=%0.3f size=%d\n",
             pkt->stream_index, pkt->pts / 90000.0, pkt->dts / 90000.0,
             pkt->size);
 
@@ -671,7 +648,7 @@ static int64_t mpegps_read_dts(AVFormatContext *s, int stream_index,
         len = mpegps_read_pes_header(s, &pos, &startcode, &pts, &dts);
         if (len < 0) {
             if (s->debug & FF_FDEBUG_TS)
-                av_log(s, AV_LOG_DEBUG, "none (ret=%d)\n", len);
+                av_log(s, AV_LOG_TRACE, "none (ret=%d)\n", len);
             return AV_NOPTS_VALUE;
         }
         if (startcode == s->streams[stream_index]->id &&
@@ -681,7 +658,7 @@ static int64_t mpegps_read_dts(AVFormatContext *s, int stream_index,
         avio_skip(s->pb, len);
     }
     if (s->debug & FF_FDEBUG_TS)
-        av_log(s, AV_LOG_DEBUG, "pos=0x%"PRIx64" dts=0x%"PRIx64" %0.3f\n",
+        av_log(s, AV_LOG_TRACE, "pos=0x%"PRIx64" dts=0x%"PRIx64" %0.3f\n",
             pos, dts, dts / 90000.0);
     *ppos = pos;
     return dts;
@@ -726,7 +703,7 @@ static int vobsub_read_header(AVFormatContext *s)
 
     if (!vobsub->sub_name) {
         char *ext;
-        vobsub->sub_name = av_strdup(s->url);
+        vobsub->sub_name = av_strdup(s->filename);
         if (!vobsub->sub_name) {
             ret = AVERROR(ENOMEM);
             goto end;
@@ -741,7 +718,7 @@ static int vobsub_read_header(AVFormatContext *s)
             goto end;
         }
         memcpy(ext, !strncmp(ext, "IDX", 3) ? "SUB" : "sub", 3);
-        av_log(s, AV_LOG_VERBOSE, "IDX/SUB: %s -> %s\n", s->url, vobsub->sub_name);
+        av_log(s, AV_LOG_VERBOSE, "IDX/SUB: %s -> %s\n", s->filename, vobsub->sub_name);
     }
 
     if (!(iformat = av_find_input_format("mpeg"))) {

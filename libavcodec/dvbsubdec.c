@@ -96,9 +96,6 @@ typedef struct DVBSubRegion {
     int clut;
     int bgcolor;
 
-    uint8_t computed_clut[4*256];
-    int has_computed_clut;
-
     uint8_t *pbuf;
     int buf_size;
     int dirty;
@@ -127,7 +124,6 @@ typedef struct DVBSubContext {
     int compute_edt; /**< if 1 end display time calculated using pts
                           if 0 (Default) calculated using time out */
     int compute_clut;
-    int clut_count2[257][256];
     int substream;
     int64_t prev_start;
     DVBSubRegion *region_list;
@@ -651,18 +647,14 @@ static int dvbsub_read_8bit_string(AVCodecContext *avctx,
     return pixels_read;
 }
 
-static void compute_default_clut(DVBSubContext *ctx, uint8_t *clut, AVSubtitleRect *rect, int w, int h)
+static void compute_default_clut(AVSubtitleRect *rect, int w, int h)
 {
     uint8_t list[256] = {0};
     uint8_t list_inv[256];
     int counttab[256] = {0};
-    int (*counttab2)[256] = ctx->clut_count2;
     int count, i, x, y;
-    ptrdiff_t stride = rect->linesize[0];
 
-    memset(ctx->clut_count2, 0 , sizeof(ctx->clut_count2));
-
-#define V(x,y) rect->data[0][(x) + (y)*stride]
+#define V(x,y) rect->data[0][(x) + (y)*rect->linesize[0]]
     for (y = 0; y<h; y++) {
         for (x = 0; x<w; x++) {
             int v = V(x,y) + 1;
@@ -671,35 +663,30 @@ static void compute_default_clut(DVBSubContext *ctx, uint8_t *clut, AVSubtitleRe
             int vt = y     ? V(x,y-1) + 1 : 0;
             int vb = y+1<h ? V(x,y+1) + 1 : 0;
             counttab[v-1] += !!((v!=vl) + (v!=vr) + (v!=vt) + (v!=vb));
-            counttab2[vl][v-1] ++;
-            counttab2[vr][v-1] ++;
-            counttab2[vt][v-1] ++;
-            counttab2[vb][v-1] ++;
         }
     }
-#define L(x,y) list[d[(x) + (y)*stride]]
+#define L(x,y) list[ rect->data[0][(x) + (y)*rect->linesize[0]] ]
 
     for (i = 0; i<256; i++) {
-        counttab2[i+1][i] = 0;
-    }
-    for (i = 0; i<256; i++) {
+        int scoretab[256] = {0};
         int bestscore = 0;
         int bestv = 0;
-
-        for (x = 0; x < 256; x++) {
-            int scorev = 0;
-            if (list[x])
-                continue;
-            scorev += counttab2[0][x];
-            for (y = 0; y < 256; y++) {
-                scorev += list[y] * counttab2[y+1][x];
-            }
-
-            if (scorev) {
-                int score = 1024LL*scorev / counttab[x];
+        for (y = 0; y<h; y++) {
+            for (x = 0; x<w; x++) {
+                int v = rect->data[0][x + y*rect->linesize[0]];
+                int l_m = list[v];
+                int l_l = x     ? L(x-1, y) : 1;
+                int l_r = x+1<w ? L(x+1, y) : 1;
+                int l_t = y     ? L(x, y-1) : 1;
+                int l_b = y+1<h ? L(x, y+1) : 1;
+                int score;
+                if (l_m)
+                    continue;
+                scoretab[v] += l_l + l_r + l_t + l_b;
+                score = 1024LL*scoretab[v] / counttab[v];
                 if (score > bestscore) {
                     bestscore = score;
-                    bestv = x;
+                    bestv = v;
                 }
             }
         }
@@ -712,7 +699,7 @@ static void compute_default_clut(DVBSubContext *ctx, uint8_t *clut, AVSubtitleRe
     count = FFMAX(i - 1, 1);
     for (i--; i>=0; i--) {
         int v = i*255/count;
-        AV_WN32(clut + 4*list_inv[i], RGBA(v/2,v,v/2,v));
+        AV_WN32(rect->data[1] + 4*list_inv[i], RGBA(v/2,v,v/2,v));
     }
 }
 
@@ -762,13 +749,8 @@ static int save_subtitle_set(AVCodecContext *avctx, AVSubtitle *sub, int *got_ou
             goto fail;
         }
 
-        for (i = 0; i < sub->num_rects; i++) {
+        for(i=0; i<sub->num_rects; i++)
             sub->rects[i] = av_mallocz(sizeof(*sub->rects[i]));
-            if (!sub->rects[i]) {
-                ret = AVERROR(ENOMEM);
-                goto fail;
-            }
-        }
 
         i = 0;
 
@@ -823,14 +805,8 @@ static int save_subtitle_set(AVCodecContext *avctx, AVSubtitle *sub, int *got_ou
 
             memcpy(rect->data[0], region->pbuf, region->buf_size);
 
-            if ((clut == &default_clut && ctx->compute_clut == -1) || ctx->compute_clut == 1) {
-                if (!region->has_computed_clut) {
-                    compute_default_clut(ctx, region->computed_clut, rect, rect->w, rect->h);
-                    region->has_computed_clut = 1;
-                }
-
-                memcpy(rect->data[1], region->computed_clut, sizeof(region->computed_clut));
-            }
+            if ((clut == &default_clut && ctx->compute_clut == -1) || ctx->compute_clut == 1)
+                compute_default_clut(rect, rect->w, rect->h);
 
 #if FF_API_AVPICTURE
 FF_DISABLE_DEPRECATION_WARNINGS
@@ -979,7 +955,6 @@ static void dvbsub_parse_pixel_data_block(AVCodecContext *avctx, DVBSubObjectDis
         }
     }
 
-    region->has_computed_clut = 0;
 }
 
 static int dvbsub_parse_object_segment(AVCodecContext *avctx,

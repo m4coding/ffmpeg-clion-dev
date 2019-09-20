@@ -524,12 +524,19 @@ static int config_output(AVFilterLink *outlink)
             av_log(ctx, AV_LOG_ERROR, "inputs must be of same pixel format\n");
             return AVERROR(EINVAL);
         }
-        if (toplink->w != bottomlink->w || toplink->h != bottomlink->h) {
+        if (toplink->w                       != bottomlink->w ||
+            toplink->h                       != bottomlink->h ||
+            toplink->sample_aspect_ratio.num != bottomlink->sample_aspect_ratio.num ||
+            toplink->sample_aspect_ratio.den != bottomlink->sample_aspect_ratio.den) {
             av_log(ctx, AV_LOG_ERROR, "First input link %s parameters "
-                   "(size %dx%d) do not match the corresponding "
-                   "second input link %s parameters (size %dx%d)\n",
+                   "(size %dx%d, SAR %d:%d) do not match the corresponding "
+                   "second input link %s parameters (%dx%d, SAR %d:%d)\n",
                    ctx->input_pads[TOP].name, toplink->w, toplink->h,
-                   ctx->input_pads[BOTTOM].name, bottomlink->w, bottomlink->h);
+                   toplink->sample_aspect_ratio.num,
+                   toplink->sample_aspect_ratio.den,
+                   ctx->input_pads[BOTTOM].name, bottomlink->w, bottomlink->h,
+                   bottomlink->sample_aspect_ratio.num,
+                   bottomlink->sample_aspect_ratio.den);
             return AVERROR(EINVAL);
         }
     }
@@ -626,17 +633,11 @@ AVFilter ff_vf_blend = {
 
 static int tblend_filter_frame(AVFilterLink *inlink, AVFrame *frame)
 {
-    AVFilterContext *ctx = inlink->dst;
-    BlendContext *s = ctx->priv;
-    AVFilterLink *outlink = ctx->outputs[0];
+    BlendContext *s = inlink->dst->priv;
+    AVFilterLink *outlink = inlink->dst->outputs[0];
 
     if (s->prev_frame) {
-        AVFrame *out;
-
-        if (ctx->is_disabled)
-            out = av_frame_clone(frame);
-        else
-            out = blend_frame(ctx, frame, s->prev_frame);
+        AVFrame *out = blend_frame(inlink->dst, frame, s->prev_frame);
         av_frame_free(&s->prev_frame);
         s->prev_frame = frame;
         return ff_filter_frame(outlink, out);
@@ -680,7 +681,7 @@ AVFilter ff_vf_tblend = {
     .uninit        = uninit,
     .inputs        = tblend_inputs,
     .outputs       = tblend_outputs,
-    .flags         = AVFILTER_FLAG_SUPPORT_TIMELINE_INTERNAL | AVFILTER_FLAG_SLICE_THREADS,
+    .flags         = AVFILTER_FLAG_SLICE_THREADS,
 };
 
 #endif

@@ -19,7 +19,6 @@
 #ifndef AVFILTER_YADIF_H
 #define AVFILTER_YADIF_H
 
-#include "libavutil/opt.h"
 #include "libavutil/pixdesc.h"
 #include "avfilter.h"
 
@@ -55,8 +54,6 @@ typedef struct YADIFContext {
     AVFrame *prev;
     AVFrame *out;
 
-    void (*filter)(AVFilterContext *ctx, AVFrame *dstpic, int parity, int tff);
-
     /**
      * Required alignment for filter_line
      */
@@ -73,11 +70,5 @@ typedef struct YADIFContext {
 } YADIFContext;
 
 void ff_yadif_init_x86(YADIFContext *yadif);
-
-int ff_yadif_filter_frame(AVFilterLink *link, AVFrame *frame);
-
-int ff_yadif_request_frame(AVFilterLink *link);
-
-extern const AVOption ff_yadif_options[];
 
 #endif /* AVFILTER_YADIF_H */

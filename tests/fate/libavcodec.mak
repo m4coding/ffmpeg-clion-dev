@@ -13,11 +13,6 @@ fate-celp_math: libavcodec/tests/celp_math$(EXESUF)
 fate-celp_math: CMD = run libavcodec/tests/celp_math
 fate-celp_math: CMP = null
 
-FATE_LIBAVCODEC-yes += fate-codec_desc
-fate-codec_desc: libavcodec/tests/codec_desc$(EXESUF)
-fate-codec_desc: CMD = run libavcodec/tests/codec_desc
-fate-codec_desc: CMP = null
-
 FATE_LIBAVCODEC-$(CONFIG_GOLOMB) += fate-golomb
 fate-golomb: libavcodec/tests/golomb$(EXESUF)
 fate-golomb: CMD = run libavcodec/tests/golomb
@@ -46,19 +41,9 @@ fate-dct8x8: libavcodec/tests/dct$(EXESUF)
 fate-dct8x8: CMD = run libavcodec/tests/dct
 fate-dct8x8: CMP = null
 
-FATE_LIBAVCODEC-$(CONFIG_H264_VAAPI_ENCODER) += fate-h264-levels
-fate-h264-levels: libavcodec/tests/h264_levels$(EXESUF)
-fate-h264-levels: CMD = run libavcodec/tests/h264_levels
-fate-h264-levels: REF = /dev/null
-
 FATE_LIBAVCODEC-$(CONFIG_IIRFILTER) += fate-iirfilter
 fate-iirfilter: libavcodec/tests/iirfilter$(EXESUF)
 fate-iirfilter: CMD = run libavcodec/tests/iirfilter
-
-FATE_LIBAVCODEC-$(CONFIG_MPEGVIDEO) += fate-mpeg12framerate
-fate-mpeg12framerate: libavcodec/tests/mpeg12framerate$(EXESUF)
-fate-mpeg12framerate: CMD = run libavcodec/tests/mpeg12framerate
-fate-mpeg12framerate: REF = /dev/null
 
 FATE_LIBAVCODEC-yes += fate-libavcodec-options
 fate-libavcodec-options: libavcodec/tests/options$(EXESUF)

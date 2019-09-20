@@ -489,6 +489,8 @@ static int ftp_list_nlst(FTPContext *s)
     return 0;
 }
 
+static int ftp_has_feature(FTPContext *s, const char *feature_name);
+
 static int ftp_list(FTPContext *s)
 {
     int ret;
@@ -513,7 +515,7 @@ static int ftp_features(FTPContext *s)
     static const char *feat_command        = "FEAT\r\n";
     static const char *enable_utf8_command = "OPTS UTF8 ON\r\n";
     static const int feat_codes[] = {211, 0};
-    static const int opts_codes[] = {200, 202, 451, 0};
+    static const int opts_codes[] = {200, 451, 0};
 
     av_freep(&s->features);
     if (ftp_send_command(s, feat_command, feat_codes, &s->features) != 211) {
@@ -521,8 +523,7 @@ static int ftp_features(FTPContext *s)
     }
 
     if (ftp_has_feature(s, "UTF8")) {
-        int ret = ftp_send_command(s, enable_utf8_command, opts_codes, NULL);
-        if (ret == 200 || ret == 202)
+        if (ftp_send_command(s, enable_utf8_command, opts_codes, NULL) == 200)
             s->utf8 = 1;
     }
 
@@ -782,13 +783,13 @@ static int ftp_read(URLContext *h, unsigned char *buf, int size)
     if (s->state == DISCONNECTED) {
         /* optimization */
         if (s->position >= s->filesize)
-            return AVERROR_EOF;
+            return 0;
         if ((err = ftp_connect_data_connection(h)) < 0)
             return err;
     }
     if (s->state == READY) {
         if (s->position >= s->filesize)
-            return AVERROR_EOF;
+            return 0;
         if ((err = ftp_retrieve(s)) < 0)
             return err;
     }

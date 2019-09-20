@@ -1,3 +1,5 @@
+FFSERVER_REFFILE = $(SRC_PATH)/tests/ffserver.regression.ref
+
 THREADS = 1
 VREF = tests/vsynth1/00.pgm
 AREF = tests/data/asynth1.sw
@@ -8,6 +10,14 @@ FATEH = 34
 FFMPEG=ffmpeg$(PROGSSUF)$(EXESUF)
 
 $(AREF): CMP=
+
+ffservertest: export PROGSUF = $(PROGSSUF)
+ffservertest: ffserver$(PROGSSUF)$(EXESUF) ffmpeg$(PROGSSUF)$(EXESUF) tests/vsynth1/00.pgm tests/data/asynth1.sw
+	@echo
+	@echo "Unfortunately ffserver is broken and therefore its regression"
+	@echo "test fails randomly. Treat the results accordingly."
+	@echo
+	$(SRC_PATH)/tests/ffserver-regression.sh $(FFSERVER_REFFILE) $(SRC_PATH)/tests/ffserver.conf "$(TARGET_SAMPLES)" "$(TARGET_EXEC)" "$(TARGET_PATH)"
 
 APITESTSDIR := tests/api
 OBJDIRS += tests/data tests/vsynth1 tests/data/filtergraphs $(APITESTSDIR)/
@@ -103,9 +113,7 @@ include $(SRC_PATH)/tests/fate/apng.mak
 include $(SRC_PATH)/tests/fate/atrac.mak
 include $(SRC_PATH)/tests/fate/audio.mak
 include $(SRC_PATH)/tests/fate/bmp.mak
-include $(SRC_PATH)/tests/fate/build.mak
 include $(SRC_PATH)/tests/fate/canopus.mak
-include $(SRC_PATH)/tests/fate/cbs.mak
 include $(SRC_PATH)/tests/fate/cdxl.mak
 include $(SRC_PATH)/tests/fate/checkasm.mak
 include $(SRC_PATH)/tests/fate/concatdec.mak
@@ -129,10 +137,7 @@ include $(SRC_PATH)/tests/fate/flvenc.mak
 include $(SRC_PATH)/tests/fate/gapless.mak
 include $(SRC_PATH)/tests/fate/gif.mak
 include $(SRC_PATH)/tests/fate/h264.mak
-include $(SRC_PATH)/tests/fate/hap.mak
 include $(SRC_PATH)/tests/fate/hevc.mak
-include $(SRC_PATH)/tests/fate/hw.mak
-include $(SRC_PATH)/tests/fate/id3v2.mak
 include $(SRC_PATH)/tests/fate/image.mak
 include $(SRC_PATH)/tests/fate/indeo.mak
 include $(SRC_PATH)/tests/fate/libavcodec.mak
@@ -151,7 +156,6 @@ include $(SRC_PATH)/tests/fate/mov.mak
 include $(SRC_PATH)/tests/fate/mp3.mak
 include $(SRC_PATH)/tests/fate/mpc.mak
 include $(SRC_PATH)/tests/fate/mpeg4.mak
-include $(SRC_PATH)/tests/fate/mpegps.mak
 include $(SRC_PATH)/tests/fate/mpegts.mak
 include $(SRC_PATH)/tests/fate/mxf.mak
 include $(SRC_PATH)/tests/fate/opus.mak
@@ -182,7 +186,7 @@ FATE-$(CONFIG_FFPROBE) += $(FATE_FFPROBE)
 
 FATE_SAMPLES_AVCONV           += $(FATE_SAMPLES_AVCONV-yes)
 FATE_SAMPLES_FFMPEG           += $(FATE_SAMPLES_FFMPEG-yes)
-FATE_EXTERN-$(CONFIG_FFMPEG)  += $(FATE_SAMPLES_AVCONV) $(FATE_SAMPLES_FFMPEG) $(FATE_SAMPLES_FFPROBE) $(FATE_SAMPLES_FASTSTART)
+FATE_EXTERN-$(CONFIG_FFMPEG)  += $(FATE_SAMPLES_AVCONV) $(FATE_SAMPLES_FFMPEG) $(FATE_SAMPLES_FFPROBE)
 FATE_EXTERN += $(FATE_EXTERN-yes)
 
 FATE += $(FATE-yes)
@@ -193,8 +197,6 @@ RSYNC_OPTIONS = -vrltLW --timeout=60 $(RSYNC_OPTIONS-yes)
 $(FATE_FFMPEG) $(FATE_SAMPLES_AVCONV) $(FATE_SAMPLES_FFMPEG): ffmpeg$(PROGSSUF)$(EXESUF)
 
 $(FATE_FFPROBE) $(FATE_SAMPLES_FFPROBE): ffprobe$(PROGSSUF)$(EXESUF)
-
-$(FATE_SAMPLES_FASTSTART): tools/qt-faststart$(EXESUF)
 
 ifdef SAMPLES
 FATE += $(FATE_FULL) $(FATE_FULL-yes)
@@ -218,14 +220,10 @@ $(addprefix fate-, $(IGNORE_TESTS)): REPORT=ignore
 
 fate:: $(FATE)
 
-# Tests requiring hardware support are not included in a default fate run.
-fate-hw: $(FATE_HW-yes)
-FATE += $(FATE_HW-yes)
-
 $(FATE) $(FATE_TESTS-no): export PROGSUF = $(PROGSSUF)
 $(FATE) $(FATE_TESTS-no): $(FATE_UTILS:%=tests/%$(HOSTEXESUF))
 	@echo "TEST    $(@:fate-%=%)"
-	$(Q)$(SRC_PATH)/tests/fate-run.sh $@ "$(TARGET_SAMPLES)" "$(TARGET_EXEC)" "$(TARGET_PATH)" '$(CMD)' '$(CMP)' '$(REF)' '$(FUZZ)' '$(THREADS)' '$(THREAD_TYPE)' '$(CPUFLAGS)' '$(CMP_SHIFT)' '$(CMP_TARGET)' '$(SIZE_TOLERANCE)' '$(CMP_UNIT)' '$(GEN)' '$(HWACCEL)' '$(REPORT)' '$(KEEP)'
+	$(Q)$(SRC_PATH)/tests/fate-run.sh $@ "$(TARGET_SAMPLES)" "$(TARGET_EXEC)" "$(TARGET_PATH)" '$(CMD)' '$(CMP)' '$(REF)' '$(FUZZ)' '$(THREADS)' '$(THREAD_TYPE)' '$(CPUFLAGS)' '$(CMP_SHIFT)' '$(CMP_TARGET)' '$(SIZE_TOLERANCE)' '$(CMP_UNIT)' '$(GEN)' '$(HWACCEL)' '$(REPORT)'
 
 fate-list:
 	@printf '%s\n' $(sort $(FATE))

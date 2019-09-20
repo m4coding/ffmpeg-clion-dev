@@ -34,14 +34,9 @@
 
 static int vc1t_probe(AVProbeData *p)
 {
-    uint32_t size;
-
     if (p->buf_size < 24)
         return 0;
-
-    size = AV_RL32(&p->buf[4]);
-    if (p->buf[3] != 0xC5 || size < 4 || size > p->buf_size - 20 ||
-        AV_RL32(&p->buf[size+16]) != 0xC)
+    if (p->buf[3] != 0xC5 || AV_RL32(&p->buf[4]) != 4 || AV_RL32(&p->buf[20]) != 0xC)
         return 0;
 
     return AVPROBE_SCORE_EXTENSION;
@@ -53,10 +48,9 @@ static int vc1t_read_header(AVFormatContext *s)
     AVStream *st;
     int frames;
     uint32_t fps;
-    uint32_t size;
 
     frames = avio_rl24(pb);
-    if (avio_r8(pb) != 0xC5 || ((size = avio_rl32(pb)) < 4))
+    if(avio_r8(pb) != 0xC5 || avio_rl32(pb) != 4)
         return AVERROR_INVALIDDATA;
 
     /* init video codec */
@@ -69,8 +63,6 @@ static int vc1t_read_header(AVFormatContext *s)
 
     if (ff_get_extradata(s, st->codecpar, pb, VC1_EXTRADATA_SIZE) < 0)
         return AVERROR(ENOMEM);
-
-    avio_skip(pb, size - 4);
     st->codecpar->height = avio_rl32(pb);
     st->codecpar->width = avio_rl32(pb);
     if(avio_rl32(pb) != 0xC)
@@ -122,6 +114,5 @@ AVInputFormat ff_vc1t_demuxer = {
     .read_probe     = vc1t_probe,
     .read_header    = vc1t_read_header,
     .read_packet    = vc1t_read_packet,
-    .extensions     = "rcv",
     .flags          = AVFMT_GENERIC_INDEX,
 };

@@ -29,18 +29,7 @@ extern "C" {
 #ifdef _WIN32
 #include <DeckLinkAPI_i.c>
 #else
-/* The file provided by the SDK is known to be missing prototypes, which doesn't
-   cause issues with GCC since the warning doesn't apply to C++ files.  However
-   Clang does complain (and warnings are treated as errors), so suppress the
-   warning just for this one file */
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wmissing-prototypes"
-#endif
 #include <DeckLinkAPIDispatch.cpp>
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 #endif
 
 extern "C" {
@@ -53,49 +42,68 @@ extern "C" {
 
 #include "decklink_common.h"
 
-static IDeckLinkIterator *decklink_create_iterator(AVFormatContext *avctx)
+#ifdef _WIN32
+IDeckLinkIterator *CreateDeckLinkIteratorInstance(void)
 {
     IDeckLinkIterator *iter;
 
-#ifdef _WIN32
     if (CoInitialize(NULL) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "COM initialization failed.\n");
+        av_log(NULL, AV_LOG_ERROR, "COM initialization failed.\n");
         return NULL;
     }
 
     if (CoCreateInstance(CLSID_CDeckLinkIterator, NULL, CLSCTX_ALL,
                          IID_IDeckLinkIterator, (void**) &iter) != S_OK) {
-        iter = NULL;
+        av_log(NULL, AV_LOG_ERROR, "DeckLink drivers not installed.\n");
+        return NULL;
     }
-#else
-    iter = CreateDeckLinkIteratorInstance();
-#endif
-    if (!iter)
-        av_log(avctx, AV_LOG_ERROR, "Could not create DeckLink iterator. "
-                                    "Make sure you have DeckLink drivers " BLACKMAGIC_DECKLINK_API_VERSION_STRING " or newer installed.\n");
 
     return iter;
 }
+#endif
 
-static int decklink_get_attr_string(IDeckLink *dl, BMDDeckLinkAttributeID cfg_id, const char **s)
+#ifdef _WIN32
+static char *dup_wchar_to_utf8(wchar_t *w)
 {
-    DECKLINK_STR tmp;
-    HRESULT hr;
-    IDeckLinkAttributes *attr;
-    *s = NULL;
-    if (dl->QueryInterface(IID_IDeckLinkAttributes, (void **)&attr) != S_OK)
-        return AVERROR_EXTERNAL;
-    hr = attr->GetString(cfg_id, &tmp);
-    attr->Release();
-    if (hr == S_OK) {
-        *s = DECKLINK_STRDUP(tmp);
-        DECKLINK_FREE(tmp);
-        if (!*s)
-            return AVERROR(ENOMEM);
-    } else if (hr == E_FAIL) {
-        return AVERROR_EXTERNAL;
-    }
-    return 0;
+    char *s = NULL;
+    int l = WideCharToMultiByte(CP_UTF8, 0, w, -1, 0, 0, 0, 0);
+    s = (char *) av_malloc(l);
+    if (s)
+        WideCharToMultiByte(CP_UTF8, 0, w, -1, s, l, 0, 0);
+    return s;
+}
+#define DECKLINK_STR    OLECHAR *
+#define DECKLINK_STRDUP dup_wchar_to_utf8
+#define DECKLINK_FREE(s) SysFreeString(s)
+#define DECKLINK_BOOL BOOL
+#elif defined(__APPLE__)
+static char *dup_cfstring_to_utf8(CFStringRef w)
+{
+    char s[256];
+    CFStringGetCString(w, s, 255, kCFStringEncodingUTF8);
+    return av_strdup(s);
+}
+#define DECKLINK_STR    const __CFString *
+#define DECKLINK_STRDUP dup_cfstring_to_utf8
+#define DECKLINK_FREE(s) CFRelease(s)
+#define DECKLINK_BOOL bool
+#else
+#define DECKLINK_STR    const char *
+#define DECKLINK_STRDUP av_strdup
+/* free() is needed for a string returned by the DeckLink SDL. */
+#define DECKLINK_FREE(s) free((void *) s)
+#define DECKLINK_BOOL bool
+#endif
+
+HRESULT ff_decklink_get_display_name(IDeckLink *This, const char **displayName)
+{
+    DECKLINK_STR tmpDisplayName;
+    HRESULT hr = This->GetDisplayName(&tmpDisplayName);
+    if (hr != S_OK)
+        return hr;
+    *displayName = DECKLINK_STRDUP(tmpDisplayName);
+    DECKLINK_FREE(tmpDisplayName);
+    return hr;
 }
 
 static int decklink_select_input(AVFormatContext *avctx, BMDDeckLinkConfigurationID cfg_id)
@@ -140,40 +148,6 @@ static DECKLINK_BOOL field_order_eq(enum AVFieldOrder field_order, BMDFieldDomin
     return false;
 }
 
-int ff_decklink_set_configs(AVFormatContext *avctx,
-                            decklink_direction_t direction) {
-    struct decklink_cctx *cctx = (struct decklink_cctx *)avctx->priv_data;
-    struct decklink_ctx *ctx = (struct decklink_ctx *)cctx->ctx;
-    HRESULT res;
-
-    if (ctx->duplex_mode) {
-        DECKLINK_BOOL duplex_supported = false;
-
-        if (ctx->attr->GetFlag(BMDDeckLinkSupportsDuplexModeConfiguration, &duplex_supported) != S_OK)
-            duplex_supported = false;
-
-        if (duplex_supported) {
-            res = ctx->cfg->SetInt(bmdDeckLinkConfigDuplexMode, ctx->duplex_mode == 2 ? bmdDuplexModeFull : bmdDuplexModeHalf);
-            if (res != S_OK)
-                av_log(avctx, AV_LOG_WARNING, "Setting duplex mode failed.\n");
-            else
-                av_log(avctx, AV_LOG_VERBOSE, "Successfully set duplex mode to %s duplex.\n", ctx->duplex_mode == 2 ? "full" : "half");
-        } else {
-            av_log(avctx, AV_LOG_WARNING, "Unable to set duplex mode, because it is not supported.\n");
-        }
-    }
-    if (direction == DIRECTION_IN) {
-        int ret;
-        ret = decklink_select_input(avctx, bmdDeckLinkConfigAudioInputConnection);
-        if (ret < 0)
-            return ret;
-        ret = decklink_select_input(avctx, bmdDeckLinkConfigVideoInputConnection);
-        if (ret < 0)
-            return ret;
-    }
-    return 0;
-}
-
 int ff_decklink_set_format(AVFormatContext *avctx,
                                int width, int height,
                                int tb_num, int tb_den,
@@ -191,7 +165,31 @@ int ff_decklink_set_format(AVFormatContext *avctx,
     av_log(avctx, AV_LOG_DEBUG, "Trying to find mode for frame size %dx%d, frame timing %d/%d, field order %d, direction %d, mode number %d, format code %s\n",
         width, height, tb_num, tb_den, field_order, direction, num, (cctx->format_code) ? cctx->format_code : "(unset)");
 
+    if (ctx->duplex_mode) {
+        DECKLINK_BOOL duplex_supported = false;
+
+        if (ctx->attr->GetFlag(BMDDeckLinkSupportsDuplexModeConfiguration, &duplex_supported) != S_OK)
+            duplex_supported = false;
+
+        if (duplex_supported) {
+            res = ctx->cfg->SetInt(bmdDeckLinkConfigDuplexMode, ctx->duplex_mode == 2 ? bmdDuplexModeFull : bmdDuplexModeHalf);
+            if (res != S_OK)
+                av_log(avctx, AV_LOG_WARNING, "Setting duplex mode failed.\n");
+            else
+                av_log(avctx, AV_LOG_VERBOSE, "Successfully set duplex mode to %s duplex.\n", ctx->duplex_mode == 2 ? "full" : "half");
+        } else {
+            av_log(avctx, AV_LOG_WARNING, "Unable to set duplex mode, because it is not supported.\n");
+        }
+    }
+
     if (direction == DIRECTION_IN) {
+        int ret;
+        ret = decklink_select_input(avctx, bmdDeckLinkConfigAudioInputConnection);
+        if (ret < 0)
+            return ret;
+        ret = decklink_select_input(avctx, bmdDeckLinkConfigVideoInputConnection);
+        if (ret < 0)
+            return ret;
         res = ctx->dli->GetDisplayModeIterator (&itermode);
     } else {
         res = ctx->dlo->GetDisplayModeIterator (&itermode);
@@ -249,18 +247,10 @@ int ff_decklink_set_format(AVFormatContext *avctx,
                                            &support, NULL) != S_OK)
             return -1;
     } else {
-        if (!ctx->supports_vanc || ctx->dlo->DoesSupportVideoMode(ctx->bmd_mode, ctx->raw_format,
-                                                                  bmdVideoOutputVANC,
-                                                                  &support, NULL) != S_OK) {
-            /* Try without VANC enabled */
-            if (ctx->dlo->DoesSupportVideoMode(ctx->bmd_mode, ctx->raw_format,
-                                               bmdVideoOutputFlagDefault,
-                                               &support, NULL) != S_OK) {
-                return -1;
-            }
-            ctx->supports_vanc = 0;
-        }
-
+        if (ctx->dlo->DoesSupportVideoMode(ctx->bmd_mode, bmdFormat8BitYUV,
+                                           bmdVideoOutputFlagDefault,
+                                           &support, NULL) != S_OK)
+        return -1;
     }
     if (support == bmdDisplayModeSupported)
         return 0;
@@ -277,26 +267,22 @@ int ff_decklink_list_devices(AVFormatContext *avctx,
                              int show_inputs, int show_outputs)
 {
     IDeckLink *dl = NULL;
-    IDeckLinkIterator *iter = decklink_create_iterator(avctx);
+    IDeckLinkIterator *iter = CreateDeckLinkIteratorInstance();
     int ret = 0;
 
-    if (!iter)
+    if (!iter) {
+        av_log(avctx, AV_LOG_ERROR, "Could not create DeckLink iterator\n");
         return AVERROR(EIO);
+    }
 
     while (ret == 0 && iter->Next(&dl) == S_OK) {
         IDeckLinkOutput *output_config;
         IDeckLinkInput *input_config;
-        const char *display_name = NULL;
-        const char *unique_name = NULL;
+        const char *displayName;
         AVDeviceInfo *new_device = NULL;
         int add = 0;
 
-        ret = decklink_get_attr_string(dl, BMDDeckLinkDisplayName, &display_name);
-        if (ret < 0)
-            goto next;
-        ret = decklink_get_attr_string(dl, BMDDeckLinkDeviceHandle, &unique_name);
-        if (ret < 0)
-            goto next;
+        ff_decklink_get_display_name(dl, &displayName);
 
         if (show_outputs) {
             if (dl->QueryInterface(IID_IDeckLinkOutput, (void **)&output_config) == S_OK) {
@@ -318,14 +304,21 @@ int ff_decklink_list_devices(AVFormatContext *avctx,
                 ret = AVERROR(ENOMEM);
                 goto next;
             }
-
-            new_device->device_name = av_strdup(unique_name ? unique_name : display_name);
-            new_device->device_description = av_strdup(display_name);
-
-            if (!new_device->device_name ||
-                !new_device->device_description ||
-                av_dynarray_add_nofree(&device_list->devices, &device_list->nb_devices, new_device) < 0) {
+            new_device->device_name = av_strdup(displayName);
+            if (!new_device->device_name) {
                 ret = AVERROR(ENOMEM);
+                goto next;
+            }
+
+            new_device->device_description = av_strdup(displayName);
+            if (!new_device->device_description) {
+                av_freep(&new_device->device_name);
+                ret = AVERROR(ENOMEM);
+                goto next;
+            }
+
+            if ((ret = av_dynarray_add_nofree(&device_list->devices,
+                                              &device_list->nb_devices, new_device)) < 0) {
                 av_freep(&new_device->device_name);
                 av_freep(&new_device->device_description);
                 av_freep(&new_device);
@@ -334,8 +327,7 @@ int ff_decklink_list_devices(AVFormatContext *avctx,
         }
 
     next:
-        av_freep(&display_name);
-        av_freep(&unique_name);
+        av_freep(&displayName);
         dl->Release();
     }
     iter->Release();
@@ -360,7 +352,7 @@ void ff_decklink_list_devices_legacy(AVFormatContext *avctx,
         av_log(avctx, AV_LOG_INFO, "Blackmagic DeckLink %s devices:\n",
                show_inputs ? "input" : "output");
         for (int i = 0; i < device_list->nb_devices; i++) {
-            av_log(avctx, AV_LOG_INFO, "\t'%s'\n", device_list->devices[i]->device_description);
+            av_log(avctx, AV_LOG_INFO, "\t'%s'\n", device_list->devices[i]->device_name);
         }
     }
     avdevice_free_list_devices(&device_list);
@@ -394,7 +386,7 @@ int ff_decklink_list_formats(AVFormatContext *avctx, decklink_direction_t direct
     }
 
     av_log(avctx, AV_LOG_INFO, "Supported formats for '%s':\n\tformat_code\tdescription",
-               avctx->url);
+               avctx->filename);
     while (itermode->Next(&mode) == S_OK) {
         BMDTimeValue tb_num, tb_den;
         mode->GetFrameRate(&tb_num, &tb_den);
@@ -439,23 +431,21 @@ int ff_decklink_init_device(AVFormatContext *avctx, const char* name)
     struct decklink_cctx *cctx = (struct decklink_cctx *)avctx->priv_data;
     struct decklink_ctx *ctx = (struct decklink_ctx *)cctx->ctx;
     IDeckLink *dl = NULL;
-    IDeckLinkIterator *iter = decklink_create_iterator(avctx);
-    if (!iter)
+    IDeckLinkIterator *iter = CreateDeckLinkIteratorInstance();
+    if (!iter) {
+        av_log(avctx, AV_LOG_ERROR, "Could not create DeckLink iterator\n");
         return AVERROR_EXTERNAL;
+    }
 
     while (iter->Next(&dl) == S_OK) {
-        const char *display_name = NULL;
-        const char *unique_name = NULL;
-        decklink_get_attr_string(dl, BMDDeckLinkDisplayName, &display_name);
-        decklink_get_attr_string(dl, BMDDeckLinkDeviceHandle, &unique_name);
-        if (display_name && !strcmp(name, display_name) || unique_name && !strcmp(name, unique_name)) {
-            av_free((void *)unique_name);
-            av_free((void *)display_name);
+        const char *displayName;
+        ff_decklink_get_display_name(dl, &displayName);
+        if (!strcmp(name, displayName)) {
+            av_free((void *)displayName);
             ctx->dl = dl;
             break;
         }
-        av_free((void *)display_name);
-        av_free((void *)unique_name);
+        av_free((void *)displayName);
         dl->Release();
     }
     iter->Release();

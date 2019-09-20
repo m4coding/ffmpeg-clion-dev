@@ -22,7 +22,6 @@
 #include "libavutil/arm/asm.S"
 
 function swri_oldapi_conv_flt_to_s16_neon, export=1
-.L_swri_oldapi_conv_flt_to_s16_neon:
         subs            r2,  r2,  #8
         vld1.32         {q0},     [r1,:128]!
         vcvt.s32.f32    q8,  q0,  #31
@@ -67,7 +66,6 @@ function swri_oldapi_conv_flt_to_s16_neon, export=1
 endfunc
 
 function swri_oldapi_conv_fltp_to_s16_2ch_neon, export=1
-.L_swri_oldapi_conv_fltp_to_s16_2ch_neon:
         ldm             r1,  {r1, r3}
         subs            r2,  r2,  #8
         vld1.32         {q0},     [r1,:128]!
@@ -135,8 +133,8 @@ function swri_oldapi_conv_fltp_to_s16_nch_neon, export=1
         cmp             r3,  #2
         itt             lt
         ldrlt           r1,  [r1]
-        blt             .L_swri_oldapi_conv_flt_to_s16_neon
-        beq             .L_swri_oldapi_conv_fltp_to_s16_2ch_neon
+        blt             X(swri_oldapi_conv_flt_to_s16_neon)
+        beq             X(swri_oldapi_conv_fltp_to_s16_2ch_neon)
 
         push            {r4-r8, lr}
         cmp             r3,  #4

@@ -135,6 +135,7 @@ int attribute_align_arg avcodec_encode_audio2(AVCodecContext *avctx,
 
     if (!(avctx->codec->capabilities & AV_CODEC_CAP_DELAY) && !frame) {
         av_packet_unref(avpkt);
+        av_init_packet(avpkt);
         return 0;
     }
 
@@ -222,9 +223,12 @@ int attribute_align_arg avcodec_encode_audio2(AVCodecContext *avctx,
             avpkt->buf      = user_pkt.buf;
             avpkt->data     = user_pkt.data;
         } else if (!avpkt->buf) {
-            ret = av_packet_make_refcounted(avpkt);
+            AVPacket tmp = { 0 };
+            ret = av_packet_ref(&tmp, avpkt);
+            av_packet_unref(avpkt);
             if (ret < 0)
                 goto end;
+            *avpkt = tmp;
         }
     }
 
@@ -234,12 +238,13 @@ int attribute_align_arg avcodec_encode_audio2(AVCodecContext *avctx,
             if (ret >= 0)
                 avpkt->data = avpkt->buf->data;
         }
-        if (frame)
-            avctx->frame_number++;
+
+        avctx->frame_number++;
     }
 
     if (ret < 0 || !*got_packet_ptr) {
         av_packet_unref(avpkt);
+        av_init_packet(avpkt);
         goto end;
     }
 
@@ -251,6 +256,10 @@ int attribute_align_arg avcodec_encode_audio2(AVCodecContext *avctx,
 end:
     av_frame_free(&padded_frame);
     av_free(extended_frame);
+
+#if FF_API_AUDIOENC_DELAY
+    avctx->delay = avctx->initial_padding;
+#endif
 
     return ret;
 }
@@ -280,6 +289,8 @@ int attribute_align_arg avcodec_encode_video2(AVCodecContext *avctx,
 
     if (!(avctx->codec->capabilities & AV_CODEC_CAP_DELAY) && !frame) {
         av_packet_unref(avpkt);
+        av_init_packet(avpkt);
+        avpkt->size = 0;
         return 0;
     }
 
@@ -311,9 +322,12 @@ int attribute_align_arg avcodec_encode_video2(AVCodecContext *avctx,
             avpkt->buf      = user_pkt.buf;
             avpkt->data     = user_pkt.data;
         } else if (!avpkt->buf) {
-            ret = av_packet_make_refcounted(avpkt);
+            AVPacket tmp = { 0 };
+            ret = av_packet_ref(&tmp, avpkt);
+            av_packet_unref(avpkt);
             if (ret < 0)
                 return ret;
+            *avpkt = tmp;
         }
     }
 
@@ -329,8 +343,7 @@ int attribute_align_arg avcodec_encode_video2(AVCodecContext *avctx,
                 avpkt->data = avpkt->buf->data;
         }
 
-        if (frame)
-            avctx->frame_number++;
+        avctx->frame_number++;
     }
 
     if (ret < 0 || !*got_packet_ptr)

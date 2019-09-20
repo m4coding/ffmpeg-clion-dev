@@ -591,21 +591,14 @@ static int decode_residual_block(AVSContext *h, GetBitContext *gb,
 }
 
 
-static inline int decode_residual_chroma(AVSContext *h)
+static inline void decode_residual_chroma(AVSContext *h)
 {
-    if (h->cbp & (1 << 4)) {
-        int ret = decode_residual_block(h, &h->gb, chroma_dec, 0,
+    if (h->cbp & (1 << 4))
+        decode_residual_block(h, &h->gb, chroma_dec, 0,
                               ff_cavs_chroma_qp[h->qp], h->cu, h->c_stride);
-        if (ret < 0)
-            return ret;
-    }
-    if (h->cbp & (1 << 5)) {
-        int ret = decode_residual_block(h, &h->gb, chroma_dec, 0,
+    if (h->cbp & (1 << 5))
+        decode_residual_block(h, &h->gb, chroma_dec, 0,
                               ff_cavs_chroma_qp[h->qp], h->cv, h->c_stride);
-        if (ret < 0)
-            return ret;
-    }
-    return 0;
 }
 
 static inline int decode_residual_inter(AVSContext *h)
@@ -656,7 +649,6 @@ static int decode_mb_i(AVSContext *h, int cbp_code)
     uint8_t top[18];
     uint8_t *left = NULL;
     uint8_t *d;
-    int ret;
 
     ff_cavs_init_mb(h);
 
@@ -700,11 +692,8 @@ static int decode_mb_i(AVSContext *h, int cbp_code)
         ff_cavs_load_intra_pred_luma(h, top, &left, block);
         h->intra_pred_l[h->pred_mode_Y[scan3x3[block]]]
             (d, top, left, h->l_stride);
-        if (h->cbp & (1<<block)) {
-            ret = decode_residual_block(h, gb, intra_dec, 1, h->qp, d, h->l_stride);
-            if (ret < 0)
-                return ret;
-        }
+        if (h->cbp & (1<<block))
+            decode_residual_block(h, gb, intra_dec, 1, h->qp, d, h->l_stride);
     }
 
     /* chroma intra prediction */
@@ -714,9 +703,7 @@ static int decode_mb_i(AVSContext *h, int cbp_code)
     h->intra_pred_c[pred_mode_uv](h->cv, &h->top_border_v[h->mbx * 10],
                                   h->left_border_v, h->c_stride);
 
-    ret = decode_residual_chroma(h);
-    if (ret < 0)
-        return ret;
+    decode_residual_chroma(h);
     ff_cavs_filter(h, I_8X8);
     set_mv_intra(h);
     return 0;
@@ -1080,11 +1067,6 @@ static int decode_pic(AVSContext *h)
     if (!h->loop_filter_disable && get_bits1(&h->gb)) {
         h->alpha_offset        = get_se_golomb(&h->gb);
         h->beta_offset         = get_se_golomb(&h->gb);
-        if (   h->alpha_offset < -64 || h->alpha_offset > 64
-            || h-> beta_offset < -64 || h-> beta_offset > 64) {
-            h->alpha_offset = h->beta_offset  = 0;
-            return AVERROR_INVALIDDATA;
-        }
     } else {
         h->alpha_offset = h->beta_offset  = 0;
     }

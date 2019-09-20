@@ -161,8 +161,6 @@ static int avfmt2_num_planes(int avfmt)
     case AV_PIX_FMT_BGR0:
     case AV_PIX_FMT_BGR24:
     case AV_PIX_FMT_RGB24:
-    case AV_PIX_FMT_GRAY8:
-    case AV_PIX_FMT_GRAY10:
         return 1;
 
     default:
@@ -281,11 +279,7 @@ static int X264_frame(AVCodecContext *ctx, AVPacket *pkt, const AVFrame *frame,
 
     x264_picture_init( &x4->pic );
     x4->pic.img.i_csp   = x4->params.i_csp;
-#if X264_BUILD >= 153
-    if (x4->params.i_bitdepth > 8)
-#else
     if (x264_bit_depth > 8)
-#endif
         x4->pic.img.i_csp |= X264_CSP_HIGH_DEPTH;
     x4->pic.img.i_plane = avfmt2_num_planes(ctx->pix_fmt);
 
@@ -445,10 +439,6 @@ static int convert_pix_fmt(enum AVPixelFormat pix_fmt)
 #ifdef X264_CSP_NV21
     case AV_PIX_FMT_NV21:      return X264_CSP_NV21;
 #endif
-#ifdef X264_CSP_I400
-    case AV_PIX_FMT_GRAY8:
-    case AV_PIX_FMT_GRAY10:    return X264_CSP_I400;
-#endif
     };
     return 0;
 }
@@ -500,9 +490,6 @@ static av_cold int X264_init(AVCodecContext *avctx)
     x4->params.p_log_private        = avctx;
     x4->params.i_log_level          = X264_LOG_DEBUG;
     x4->params.i_csp                = convert_pix_fmt(avctx->pix_fmt);
-#if X264_BUILD >= 153
-    x4->params.i_bitdepth           = av_pix_fmt_desc_get(avctx->pix_fmt)->comp[0].depth;
-#endif
 
     PARSE_X264_OPT("weightp", wpredp);
 
@@ -714,8 +701,24 @@ FF_ENABLE_DEPRECATION_WARNINGS
     if (x4->nal_hrd >= 0)
         x4->params.i_nal_hrd = x4->nal_hrd;
 
-    if (x4->motion_est >= 0)
+    if (x4->motion_est >= 0) {
         x4->params.analyse.i_me_method = x4->motion_est;
+#if FF_API_MOTION_EST
+FF_DISABLE_DEPRECATION_WARNINGS
+    } else {
+        if (avctx->me_method == ME_EPZS)
+            x4->params.analyse.i_me_method = X264_ME_DIA;
+        else if (avctx->me_method == ME_HEX)
+            x4->params.analyse.i_me_method = X264_ME_HEX;
+        else if (avctx->me_method == ME_UMH)
+            x4->params.analyse.i_me_method = X264_ME_UMH;
+        else if (avctx->me_method == ME_FULL)
+            x4->params.analyse.i_me_method = X264_ME_ESA;
+        else if (avctx->me_method == ME_TESA)
+            x4->params.analyse.i_me_method = X264_ME_TESA;
+FF_ENABLE_DEPRECATION_WARNINGS
+#endif
+    }
 
     if (x4->coder >= 0)
         x4->params.b_cabac = x4->coder;
@@ -875,28 +878,6 @@ static const enum AVPixelFormat pix_fmts_10bit[] = {
     AV_PIX_FMT_NV20,
     AV_PIX_FMT_NONE
 };
-static const enum AVPixelFormat pix_fmts_all[] = {
-    AV_PIX_FMT_YUV420P,
-    AV_PIX_FMT_YUVJ420P,
-    AV_PIX_FMT_YUV422P,
-    AV_PIX_FMT_YUVJ422P,
-    AV_PIX_FMT_YUV444P,
-    AV_PIX_FMT_YUVJ444P,
-    AV_PIX_FMT_NV12,
-    AV_PIX_FMT_NV16,
-#ifdef X264_CSP_NV21
-    AV_PIX_FMT_NV21,
-#endif
-    AV_PIX_FMT_YUV420P10,
-    AV_PIX_FMT_YUV422P10,
-    AV_PIX_FMT_YUV444P10,
-    AV_PIX_FMT_NV20,
-#ifdef X264_CSP_I400
-    AV_PIX_FMT_GRAY8,
-    AV_PIX_FMT_GRAY10,
-#endif
-    AV_PIX_FMT_NONE
-};
 #if CONFIG_LIBX264RGB_ENCODER
 static const enum AVPixelFormat pix_fmts_8bit_rgb[] = {
     AV_PIX_FMT_BGR0,
@@ -908,16 +889,12 @@ static const enum AVPixelFormat pix_fmts_8bit_rgb[] = {
 
 static av_cold void X264_init_static(AVCodec *codec)
 {
-#if X264_BUILD < 153
     if (x264_bit_depth == 8)
         codec->pix_fmts = pix_fmts_8bit;
     else if (x264_bit_depth == 9)
         codec->pix_fmts = pix_fmts_9bit;
     else if (x264_bit_depth == 10)
         codec->pix_fmts = pix_fmts_10bit;
-#else
-    codec->pix_fmts = pix_fmts_all;
-#endif
 }
 
 #define OFFSET(x) offsetof(X264Context, x)
@@ -981,7 +958,6 @@ static const AVOption options[] = {
     { "vbr",           NULL, 0, AV_OPT_TYPE_CONST, {.i64 = X264_NAL_HRD_VBR},  INT_MIN, INT_MAX, VE, "nal-hrd" },
     { "cbr",           NULL, 0, AV_OPT_TYPE_CONST, {.i64 = X264_NAL_HRD_CBR},  INT_MIN, INT_MAX, VE, "nal-hrd" },
     { "avcintra-class","AVC-Intra class 50/100/200",                      OFFSET(avcintra_class),AV_OPT_TYPE_INT,     { .i64 = -1 }, -1, 200   , VE},
-    { "me_method",    "Set motion estimation method",                     OFFSET(motion_est),    AV_OPT_TYPE_INT,    { .i64 = -1 }, -1, X264_ME_TESA, VE, "motion-est"},
     { "motion-est",   "Set motion estimation method",                     OFFSET(motion_est),    AV_OPT_TYPE_INT,    { .i64 = -1 }, -1, X264_ME_TESA, VE, "motion-est"},
     { "dia",           NULL, 0, AV_OPT_TYPE_CONST, { .i64 = X264_ME_DIA },  INT_MIN, INT_MAX, VE, "motion-est" },
     { "hex",           NULL, 0, AV_OPT_TYPE_CONST, { .i64 = X264_ME_HEX },  INT_MIN, INT_MAX, VE, "motion-est" },
@@ -1026,6 +1002,9 @@ static const AVCodecDefault x264_defaults[] = {
     { "nr",               "-1" },
 #endif
     { "me_range",         "-1" },
+#if FF_API_MOTION_EST
+    { "me_method",        "-1" },
+#endif
     { "subq",             "-1" },
 #if FF_API_PRIVATE_OPT
     { "b_strategy",       "-1" },
@@ -1063,8 +1042,8 @@ AVCodec ff_libx264_encoder = {
     .priv_class       = &x264_class,
     .defaults         = x264_defaults,
     .init_static_data = X264_init_static,
-    .caps_internal    = FF_CODEC_CAP_INIT_CLEANUP,
-    .wrapper_name     = "libx264",
+    .caps_internal    = FF_CODEC_CAP_INIT_THREADSAFE |
+                        FF_CODEC_CAP_INIT_CLEANUP,
 };
 #endif
 
@@ -1089,7 +1068,6 @@ AVCodec ff_libx264rgb_encoder = {
     .priv_class     = &rgbclass,
     .defaults       = x264_defaults,
     .pix_fmts       = pix_fmts_8bit_rgb,
-    .wrapper_name   = "libx264",
 };
 #endif
 
@@ -1114,7 +1092,7 @@ AVCodec ff_libx262_encoder = {
     .priv_class       = &X262_class,
     .defaults         = x264_defaults,
     .pix_fmts         = pix_fmts_8bit,
-    .caps_internal    = FF_CODEC_CAP_INIT_CLEANUP,
-    .wrapper_name     = "libx264",
+    .caps_internal    = FF_CODEC_CAP_INIT_THREADSAFE |
+                        FF_CODEC_CAP_INIT_CLEANUP,
 };
 #endif

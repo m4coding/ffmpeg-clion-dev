@@ -42,12 +42,8 @@ typedef struct FileLogContext {
 } FileLogContext;
 
 static const AVClass file_log_ctx_class = {
-    .class_name                = "FILE",
-    .item_name                 = av_default_item_name,
-    .option                    = NULL,
-    .version                   = LIBAVUTIL_VERSION_INT,
-    .log_level_offset_offset   = offsetof(FileLogContext, log_offset),
-    .parent_log_context_offset = offsetof(FileLogContext, log_ctx),
+    "FILE", av_default_item_name, NULL, LIBAVUTIL_VERSION_INT,
+    offsetof(FileLogContext, log_offset), offsetof(FileLogContext, log_ctx)
 };
 
 int av_file_map(const char *filename, uint8_t **bufptr, size_t *size,
@@ -84,11 +80,6 @@ int av_file_map(const char *filename, uint8_t **bufptr, size_t *size,
         return AVERROR(EINVAL);
     }
     *size = off_size;
-
-    if (!*size) {
-        *bufptr = NULL;
-        goto out;
-    }
 
 #if HAVE_MMAP
     ptr = mmap(NULL, *size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0);
@@ -131,15 +122,12 @@ int av_file_map(const char *filename, uint8_t **bufptr, size_t *size,
     read(fd, *bufptr, *size);
 #endif
 
-out:
     close(fd);
     return 0;
 }
 
 void av_file_unmap(uint8_t *bufptr, size_t size)
 {
-    if (!size)
-        return;
 #if HAVE_MMAP
     munmap(bufptr, size);
 #elif HAVE_MAPVIEWOFFILE

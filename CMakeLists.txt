@@ -24,26 +24,19 @@ include_directories(
 
 list(APPEND avfilter_srcs
     libavfilter/aeval.c
-    libavfilter/af_acontrast.c
     libavfilter/af_acopy.c
-    libavfilter/af_acrossover.c
     libavfilter/af_acrusher.c
-    libavfilter/af_adeclick.c
     libavfilter/af_adelay.c
-    libavfilter/af_aderivative.c
     libavfilter/af_aecho.c
     libavfilter/af_aemphasis.c
     libavfilter/af_afade.c
-    libavfilter/af_afftdn.c
     libavfilter/af_afftfilt.c
     libavfilter/af_afir.c
     libavfilter/af_aformat.c
     libavfilter/af_agate.c
-    libavfilter/af_aiir.c
     libavfilter/af_alimiter.c
     libavfilter/af_amerge.c
     libavfilter/af_amix.c
-    libavfilter/af_amultiply.c
     libavfilter/af_anequalizer.c
     libavfilter/af_anull.c
     libavfilter/af_apad.c
@@ -64,7 +57,6 @@ list(APPEND avfilter_srcs
     libavfilter/af_crossfeed.c
     libavfilter/af_crystalizer.c
     libavfilter/af_dcshift.c
-    libavfilter/af_drmeter.c
     libavfilter/af_dynaudnorm.c
     libavfilter/af_earwax.c
     libavfilter/af_extrastereo.c
@@ -75,7 +67,6 @@ list(APPEND avfilter_srcs
     libavfilter/af_headphone.c
     libavfilter/af_join.c
     libavfilter/af_loudnorm.c
-    libavfilter/af_mcompand.c
     libavfilter/af_pan.c
     libavfilter/af_replaygain.c
     libavfilter/af_sidechaincompress.c
@@ -93,8 +84,6 @@ list(APPEND avfilter_srcs
     libavfilter/asink_anullsink.c
     libavfilter/asrc_anoisesrc.c
     libavfilter/asrc_anullsrc.c
-    libavfilter/asrc_hilbert.c
-    libavfilter/asrc_sinc.c
     libavfilter/asrc_sine.c
     libavfilter/audio.c
     libavfilter/avf_abitscope.c
@@ -110,20 +99,14 @@ list(APPEND avfilter_srcs
     libavfilter/avfilter.c
     libavfilter/avfiltergraph.c
     libavfilter/bbox.c
-    libavfilter/boxblur.c
     libavfilter/buffersink.c
     libavfilter/buffersrc.c
-    libavfilter/colorspace.c
     libavfilter/colorspacedsp.c
-    libavfilter/dnn_backend_native.c
-    libavfilter/dnn_interface.c
     libavfilter/drawutils.c
     libavfilter/ebur128.c
     libavfilter/f_bench.c
-    libavfilter/f_cue.c
     libavfilter/f_drawgraph.c
     libavfilter/f_ebur128.c
-    libavfilter/f_graphmonitor.c
     libavfilter/f_interleave.c
     libavfilter/f_loop.c
     libavfilter/f_metadata.c
@@ -145,6 +128,7 @@ list(APPEND avfilter_srcs
     libavfilter/lavfutils.c
     libavfilter/lswsutils.c
     libavfilter/motion_estimation.c
+    libavfilter/opencl_allkernels.c
     libavfilter/pthread.c
     libavfilter/scale.c
     libavfilter/setpts.c
@@ -155,7 +139,6 @@ list(APPEND avfilter_srcs
     libavfilter/trim.c
     libavfilter/vaf_spectrumsynth.c
     libavfilter/vf_alphamerge.c
-    libavfilter/vf_amplify.c
     libavfilter/vf_aspect.c
     libavfilter/vf_atadenoise.c
     libavfilter/vf_avgblur.c
@@ -164,7 +147,6 @@ list(APPEND avfilter_srcs
     libavfilter/vf_blackdetect.c
     libavfilter/vf_blackframe.c
     libavfilter/vf_blend.c
-    libavfilter/vf_bm3d.c
     libavfilter/vf_boxblur.c
     libavfilter/vf_bwdif.c
     libavfilter/vf_chromakey.c
@@ -172,7 +154,6 @@ list(APPEND avfilter_srcs
     libavfilter/vf_codecview.c
     libavfilter/vf_colorbalance.c
     libavfilter/vf_colorchannelmixer.c
-    libavfilter/vf_colorconstancy.c
     libavfilter/vf_colorkey.c
     libavfilter/vf_colorlevels.c
     libavfilter/vf_colormatrix.c
@@ -187,7 +168,6 @@ list(APPEND avfilter_srcs
     libavfilter/vf_datascope.c
     libavfilter/vf_dctdnoiz.c
     libavfilter/vf_deband.c
-    libavfilter/vf_deblock.c
     libavfilter/vf_decimate.c
     libavfilter/vf_deflicker.c
     libavfilter/vf_dejudder.c
@@ -199,17 +179,14 @@ list(APPEND avfilter_srcs
     libavfilter/vf_drawbox.c
     libavfilter/vf_edgedetect.c
     libavfilter/vf_elbg.c
-    libavfilter/vf_entropy.c
     libavfilter/vf_eq.c
     libavfilter/vf_extractplanes.c
     libavfilter/vf_fade.c
-    libavfilter/vf_fftdnoiz.c
     libavfilter/vf_fftfilt.c
     libavfilter/vf_field.c
     libavfilter/vf_fieldhint.c
     libavfilter/vf_fieldmatch.c
     libavfilter/vf_fieldorder.c
-    libavfilter/vf_fillborders.c
     libavfilter/vf_find_rect.c
     libavfilter/vf_floodfill.c
     libavfilter/vf_format.c
@@ -227,6 +204,9 @@ list(APPEND avfilter_srcs
     libavfilter/vf_hqdn3d.c
     libavfilter/vf_hqx.c
     libavfilter/vf_hue.c
+    libavfilter/vf_hwupload_cuda.c
+    libavfilter/vf_interlace.c
+    libavfilter/vf_setfield.c
     libavfilter/vf_hwdownload.c
     libavfilter/vf_hwmap.c
     libavfilter/vf_hwupload.c
@@ -247,13 +227,11 @@ list(APPEND avfilter_srcs
     libavfilter/vf_mestimate.c
     libavfilter/vf_midequalizer.c
     libavfilter/vf_minterpolate.c
-    libavfilter/vf_mix.c
     libavfilter/vf_mpdecimate.c
     libavfilter/vf_neighbor.c
     libavfilter/vf_nlmeans.c
     libavfilter/vf_nnedi.c
     libavfilter/vf_noise.c
-    libavfilter/vf_normalize.c
     libavfilter/vf_null.c
     libavfilter/vf_overlay.c
     libavfilter/vf_owdenoise.c
@@ -282,7 +260,6 @@ list(APPEND avfilter_srcs
     libavfilter/vf_scale.c
     libavfilter/vf_selectivecolor.c
     libavfilter/vf_separatefields.c
-    libavfilter/vf_setparams.c
     libavfilter/vf_showinfo.c
     libavfilter/vf_showpalette.c
     libavfilter/vf_shuffleframes.c
@@ -291,7 +268,6 @@ list(APPEND avfilter_srcs
     libavfilter/vf_signature.c
     libavfilter/vf_smartblur.c
     libavfilter/vf_spp.c
-    libavfilter/vf_sr.c
     libavfilter/vf_ssim.c
     libavfilter/vf_stack.c
     libavfilter/vf_stereo3d.c
@@ -310,8 +286,6 @@ list(APPEND avfilter_srcs
     libavfilter/vf_vaguedenoiser.c
     libavfilter/vf_vectorscope.c
     libavfilter/vf_vflip.c
-    libavfilter/vf_vfrdet.c
-    libavfilter/vf_vibrance.c
     libavfilter/vf_vignette.c
     libavfilter/vf_vmafmotion.c
     libavfilter/vf_w3fdif.c
@@ -327,7 +301,6 @@ list(APPEND avfilter_srcs
     libavfilter/vsrc_mandelbrot.c
     libavfilter/vsrc_mptestsrc.c
     libavfilter/vsrc_testsrc.c
-    libavfilter/yadif_common.c
 )
 
 list(APPEND avformat_srcs
@@ -356,7 +329,6 @@ list(APPEND avformat_srcs
     libavformat/apetag.c
     libavformat/apngdec.c
     libavformat/apngenc.c
-    libavformat/aptxdec.c
     libavformat/aqtitledec.c
     libavformat/asf.c
     libavformat/asfcrypt.c
@@ -371,7 +343,6 @@ list(APPEND avformat_srcs
     libavformat/async.c
     libavformat/au.c
     libavformat/audiointerleave.c
-    libavformat/av1.c
     libavformat/avc.c
     libavformat/avidec.c
     libavformat/avienc.c
@@ -397,7 +368,6 @@ list(APPEND avformat_srcs
     libavformat/cdg.c
     libavformat/cdxl.c
     libavformat/cinedec.c
-    libavformat/codec2.c
     libavformat/concat.c
     libavformat/concatdec.c
     libavformat/crcenc.c
@@ -408,7 +378,6 @@ list(APPEND avformat_srcs
     libavformat/data_uri.c
     libavformat/dauddec.c
     libavformat/daudenc.c
-    libavformat/davs2.c
     libavformat/dcstr.c
     libavformat/dfa.c
     libavformat/diracdec.c
@@ -429,8 +398,9 @@ list(APPEND avformat_srcs
     libavformat/epafdec.c
     libavformat/ffmetadec.c
     libavformat/ffmetaenc.c
+    libavformat/ffmenc.c
+    libavformat/ffmdec.c
     libavformat/fifo.c
-    libavformat/fifo_test.c
     libavformat/file.c
     libavformat/filmstripdec.c
     libavformat/filmstripenc.c
@@ -470,7 +440,6 @@ list(APPEND avformat_srcs
     libavformat/hevcdec.c
     libavformat/hls.c
     libavformat/hlsenc.c
-    libavformat/hlsplaylist.c
     libavformat/hlsproto.c
     libavformat/hnm.c
     libavformat/http.c
@@ -492,7 +461,6 @@ list(APPEND avformat_srcs
     libavformat/img2dec.c
     libavformat/img2enc.c
     libavformat/ingenientdec.c
-    libavformat/ip.c
     libavformat/ipmovie.c
     libavformat/ircam.c
     libavformat/ircamdec.c
@@ -533,7 +501,6 @@ list(APPEND avformat_srcs
     libavformat/mmst.c
     libavformat/mov.c
     libavformat/mov_chan.c
-    libavformat/mov_esds.c
     libavformat/movenc.c
     libavformat/movenccenc.c
     libavformat/movenchint.c
@@ -565,7 +532,6 @@ list(APPEND avformat_srcs
     libavformat/ncdec.c
     libavformat/network.c
     libavformat/nistspheredec.c
-    libavformat/nspdec.c
     libavformat/nsvdec.c
     libavformat/nullenc.c
     libavformat/nut.c
@@ -625,7 +591,6 @@ list(APPEND avformat_srcs
     libavformat/rso.c
     libavformat/rsodec.c
     libavformat/rsoenc.c
-    libavformat/rtmpdigest.c
     libavformat/rtmphttp.c
     libavformat/rtmppkt.c
     libavformat/rtmpproto.c
@@ -682,7 +647,6 @@ list(APPEND avformat_srcs
     libavformat/sapdec.c
     libavformat/sapenc.c
     libavformat/sauce.c
-    libavformat/sbcdec.c
     libavformat/sbgdec.c
     libavformat/sccdec.c
     libavformat/sccenc.c
@@ -691,9 +655,7 @@ list(APPEND avformat_srcs
     libavformat/sdsdec.c
     libavformat/sdxdec.c
     libavformat/segafilm.c
-    libavformat/segafilmenc.c
     libavformat/segment.c
-    libavformat/serdec.c
     libavformat/shortendec.c
     libavformat/sierravmd.c
     libavformat/siff.c
@@ -737,7 +699,6 @@ list(APPEND avformat_srcs
     libavformat/ttaenc.c
     libavformat/tty.c
     libavformat/txd.c
-    libavformat/ty.c
     libavformat/udp.c
     libavformat/uncodedframecrcenc.c
     libavformat/unix.c
@@ -813,6 +774,7 @@ list(APPEND avcodec_srcs
     libavcodec/aacsbr.c
     libavcodec/aacsbr_fixed.c
     libavcodec/aactab.c
+    libavcodec/aacadtsdec.c
     libavcodec/aandcttab.c
     libavcodec/aasc.c
     libavcodec/ac3.c
@@ -831,8 +793,6 @@ list(APPEND avcodec_srcs
     libavcodec/adpcm.c
     libavcodec/adpcm_data.c
     libavcodec/adpcmenc.c
-    libavcodec/adts_header.c
-    libavcodec/adts_parser.c
     libavcodec/adx.c
     libavcodec/adx_parser.c
     libavcodec/adxdec.c
@@ -851,7 +811,6 @@ list(APPEND avcodec_srcs
     libavcodec/anm.c
     libavcodec/ansi.c
     libavcodec/apedec.c
-    libavcodec/aptx.c
     libavcodec/ass.c
     libavcodec/ass_split.c
     libavcodec/assdec.c
@@ -865,20 +824,15 @@ list(APPEND avcodec_srcs
     libavcodec/atrac3plus.c
     libavcodec/atrac3plusdec.c
     libavcodec/atrac3plusdsp.c
-    libavcodec/atrac9dec.c
     libavcodec/audio_frame_queue.c
     libavcodec/audiodsp.c
     libavcodec/aura.c
-    libavcodec/av1_metadata_bsf.c
-    libavcodec/av1_parse.c
-    libavcodec/av1_parser.c
     libavcodec/avdct.c
     libavcodec/avfft.c
     libavcodec/avpacket.c
     libavcodec/avpicture.c
     libavcodec/avrndec.c
     libavcodec/avs.c
-    libavcodec/avs2_parser.c
     libavcodec/avuidec.c
     libavcodec/avuienc.c
     libavcodec/bethsoftvideo.c
@@ -911,11 +865,6 @@ list(APPEND avcodec_srcs
     libavcodec/cavsdsp.c
     libavcodec/cbrt_data.c
     libavcodec/cbrt_data_fixed.c
-    libavcodec/cbs.c
-    libavcodec/cbs_av1.c
-    libavcodec/cbs_h2645.c
-    libavcodec/cbs_mpeg2.c
-    libavcodec/cbs_vp9.c
     libavcodec/ccaption_dec.c
     libavcodec/cdgraphics.c
     libavcodec/cdxl.c
@@ -933,12 +882,12 @@ list(APPEND avcodec_srcs
     libavcodec/cllc.c
     libavcodec/cngdec.c
     libavcodec/cngenc.c
-    libavcodec/codec2utils.c
     libavcodec/codec_desc.c
     libavcodec/cook.c
     libavcodec/cook_parser.c
     libavcodec/cpia.c
     libavcodec/cscd.c
+    libavcodec/cuvid.c
     libavcodec/cyuv.c
     libavcodec/d3d11va.c
     libavcodec/dca.c
@@ -1002,7 +951,6 @@ list(APPEND avcodec_srcs
     libavcodec/dxa.c
     libavcodec/dxtory.c
     libavcodec/dxv.c
-    libavcodec/eac3_core_bsf.c
     libavcodec/eac3_data.c
     libavcodec/eac3enc.c
     libavcodec/eacmv.c
@@ -1035,7 +983,6 @@ list(APPEND avcodec_srcs
     libavcodec/ffv1enc.c
     libavcodec/ffwavesynth.c
     libavcodec/fic.c
-    libavcodec/filter_units_bsf.c
     libavcodec/fits.c
     libavcodec/fitsdec.c
     libavcodec/fitsenc.c
@@ -1089,16 +1036,13 @@ list(APPEND avcodec_srcs
     libavcodec/h264_cabac.c
     libavcodec/h264_cavlc.c
     libavcodec/h264_direct.c
-    libavcodec/h264_levels.c
     libavcodec/h264_loopfilter.c
     libavcodec/h264_mb.c
-    libavcodec/h264_metadata_bsf.c
     libavcodec/h264_mp4toannexb_bsf.c
     libavcodec/h264_parse.c
     libavcodec/h264_parser.c
     libavcodec/h264_picture.c
     libavcodec/h264_ps.c
-    libavcodec/h264_redundant_pps_bsf.c
     libavcodec/h264_refs.c
     libavcodec/h264_sei.c
     libavcodec/h264_slice.c
@@ -1109,10 +1053,8 @@ list(APPEND avcodec_srcs
     libavcodec/h264idct.c
     libavcodec/h264pred.c
     libavcodec/h264qpel.c
-    libavcodec/h265_metadata_bsf.c
     libavcodec/hap.c
     libavcodec/hapdec.c
-    libavcodec/hapqa_extract_bsf.c
     libavcodec/hevc_cabac.c
     libavcodec/hevc_data.c
     libavcodec/hevc_filter.c
@@ -1145,10 +1087,8 @@ list(APPEND avcodec_srcs
     libavcodec/idctdsp.c
     libavcodec/iff.c
     libavcodec/iirfilter.c
-    libavcodec/ilbcdec.c
     libavcodec/imc.c
     libavcodec/imgconvert.c
-    libavcodec/imm4.c
     libavcodec/imx_dump_header_bsf.c
     libavcodec/indeo2.c
     libavcodec/indeo3.c
@@ -1202,7 +1142,6 @@ list(APPEND avcodec_srcs
     libavcodec/m101.c
     libavcodec/mace.c
     libavcodec/magicyuv.c
-    libavcodec/magicyuvenc.c
     libavcodec/mathtables.c
     libavcodec/mdct15.c
     libavcodec/mdct_fixed.c
@@ -1244,7 +1183,6 @@ list(APPEND avcodec_srcs
     libavcodec/mpeg12dec.c
     libavcodec/mpeg12enc.c
     libavcodec/mpeg12framerate.c
-    libavcodec/mpeg2_metadata_bsf.c
     libavcodec/mpeg4_unpack_bframes_bsf.c
     libavcodec/mpeg4audio.c
     libavcodec/mpeg4video.c
@@ -1295,7 +1233,6 @@ list(APPEND avcodec_srcs
     libavcodec/msvideo1.c
     libavcodec/msvideo1enc.c
     libavcodec/mvcdec.c
-    libavcodec/mwsc.c
     libavcodec/mxpegdec.c
     libavcodec/nellymoser.c
     libavcodec/nellymoserdec.c
@@ -1320,7 +1257,6 @@ list(APPEND avcodec_srcs
     libavcodec/pafvideo.c
     libavcodec/pamenc.c
     libavcodec/parser.c
-    libavcodec/parsers.c
     libavcodec/pcm-bluray.c
     libavcodec/pcm-dvd.c
     libavcodec/pcm.c
@@ -1343,9 +1279,12 @@ list(APPEND avcodec_srcs
     libavcodec/proresdata.c
     libavcodec/proresdec2.c
     libavcodec/proresdsp.c
+    libavcodec/proresdec_lgpl.c
+    libavcodec/nvenc_h264.c
+    libavcodec/nvenc_hevc.c
+    libavcodec/nvenc.c
     libavcodec/proresenc_anatoliy.c
     libavcodec/proresenc_kostya.c
-    libavcodec/prosumer.c
     libavcodec/psd.c
     libavcodec/psymodel.c
     libavcodec/pthread.c
@@ -1369,7 +1308,6 @@ list(APPEND avcodec_srcs
     libavcodec/ra288.c
     libavcodec/ralf.c
     libavcodec/rangecoder.c
-    libavcodec/rasc.c
     libavcodec/ratecontrol.c
     libavcodec/raw.c
     libavcodec/rawdec.c
@@ -1401,13 +1339,6 @@ list(APPEND avcodec_srcs
     libavcodec/s302menc.c
     libavcodec/samidec.c
     libavcodec/sanm.c
-    libavcodec/sbc.c
-    libavcodec/sbc_parser.c
-    libavcodec/sbcdec.c
-    libavcodec/sbcdec_data.c
-    libavcodec/sbcdsp.c
-    libavcodec/sbcdsp_data.c
-    libavcodec/sbcenc.c
     libavcodec/sbrdsp.c
     libavcodec/sbrdsp_fixed.c
     libavcodec/scpr.c
@@ -1463,7 +1394,6 @@ list(APPEND avcodec_srcs
     libavcodec/tiffenc.c
     libavcodec/tmv.c
     libavcodec/tpeldsp.c
-    libavcodec/trace_headers_bsf.c
     libavcodec/truemotion1.c
     libavcodec/truemotion2.c
     libavcodec/truemotion2rt.c
@@ -1532,7 +1462,6 @@ list(APPEND avcodec_srcs
     libavcodec/vp8_parser.c
     libavcodec/vp8dsp.c
     libavcodec/vp9.c
-    libavcodec/vp9_metadata_bsf.c
     libavcodec/vp9_parser.c
     libavcodec/vp9_raw_reorder_bsf.c
     libavcodec/vp9_superframe_bsf.c
@@ -1550,7 +1479,6 @@ list(APPEND avcodec_srcs
     libavcodec/vqavideo.c
     libavcodec/wavpack.c
     libavcodec/wavpackenc.c
-    libavcodec/wcmv.c
     libavcodec/webp.c
     libavcodec/webvttdec.c
     libavcodec/webvttenc.c
@@ -1629,6 +1557,7 @@ list(APPEND avutil_srcs
     libavutil/adler32.c
     libavutil/aes.c
     libavutil/aes_ctr.c
+    libavutil/application.c
     libavutil/audio_fifo.c
     libavutil/avstring.c
     libavutil/base64.c
@@ -1643,9 +1572,9 @@ list(APPEND avutil_srcs
     libavutil/crc.c
     libavutil/des.c
     libavutil/dict.c
+    libavutil/dns_cache.c
     libavutil/display.c
     libavutil/downmix_info.c
-    libavutil/encryption_info.c
     libavutil/error.c
     libavutil/eval.c
     libavutil/fifo.c
@@ -1657,6 +1586,7 @@ list(APPEND avutil_srcs
     libavutil/hash.c
     libavutil/hmac.c
     libavutil/hwcontext.c
+    libavutil/hwcontext_cuda.c
     libavutil/imgutils.c
     libavutil/integer.c
     libavutil/intmath.c
@@ -1719,6 +1649,7 @@ list(APPEND ffmpeg_srcs
     fftools/ffmpeg_filter.c
     fftools/ffmpeg_hw.c
     fftools/cmdutils.c
+    fftools/ffmpeg_cuvid.c
     fftools/ffmpeg.c
 )
 

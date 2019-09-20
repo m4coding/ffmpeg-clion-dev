@@ -128,10 +128,7 @@ static int ogg_restore(AVFormatContext *s)
     ogg->state = ost->next;
 
         for (i = 0; i < ogg->nstreams; i++) {
-            struct ogg_stream *stream = &ogg->streams[i];
-            av_freep(&stream->buf);
-            av_freep(&stream->new_metadata);
-
+            av_freep(&ogg->streams[i].buf);
             if (i >= ost->nstreams || !ost->streams[i].private) {
                 free_stream(s, i);
             }
@@ -546,11 +543,7 @@ static int ogg_packet(AVFormatContext *s, int *sid, int *dstart, int *dsize,
     os->incomplete = 0;
 
     if (os->header) {
-        if ((ret = os->codec->header(s, idx)) < 0) {
-            av_log(s, AV_LOG_ERROR, "Header processing failed: %s\n", av_err2str(ret));
-            return ret;
-        }
-        os->header = ret;
+        os->header = os->codec->header(s, idx);
         if (!os->header) {
             os->segp  = segp;
             os->psize = psize;
@@ -581,12 +574,8 @@ static int ogg_packet(AVFormatContext *s, int *sid, int *dstart, int *dsize,
     } else {
         os->pflags    = 0;
         os->pduration = 0;
-        if (os->codec && os->codec->packet) {
-            if ((ret = os->codec->packet(s, idx)) < 0) {
-                av_log(s, AV_LOG_ERROR, "Packet processing failed: %s\n", av_err2str(ret));
-                return ret;
-            }
-        }
+        if (os->codec && os->codec->packet)
+            os->codec->packet(s, idx);
         if (sid)
             *sid = idx;
         if (dstart)
@@ -730,10 +719,8 @@ static int ogg_read_header(AVFormatContext *s)
                    "Headers mismatch for stream %d: "
                    "expected %d received %d.\n",
                    i, os->codec->nb_header, os->nb_header);
-            if (s->error_recognition & AV_EF_EXPLODE) {
-                ogg_read_close(s);
+            if (s->error_recognition & AV_EF_EXPLODE)
                 return AVERROR_INVALIDDATA;
-            }
         }
         if (os->start_granule != OGG_NOGRANULE_VALUE)
             os->lastpts = s->streams[i]->start_time =
